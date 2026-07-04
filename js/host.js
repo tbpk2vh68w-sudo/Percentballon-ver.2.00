@@ -16,13 +16,13 @@ const HostUI = {
 
     roomId: document.getElementById("roomId"),
 
-    list: document.getElementById("list"),
+    list: document.getElementById("questionList"),
 
-    qText: document.getElementById("qText"),
+    qText: document.getElementById("questionInput"),
 
-    qAnswer: document.getElementById("qAnswer")
+    qAnswer: document.getElementById("answerInput")
 
-};
+}
 
 /*=========================================
     Current Room
@@ -477,4 +477,34 @@ function addQ() {
 
 function saveRoom() {
     saveHostRoom();
+}
+if (homeBtn) {
+
+    homeBtn.onclick = () => {
+
+        location.href = "index.html";
+
+    };
+
+}
+if (saveBtn) {
+
+    saveBtn.onclick = () => {
+
+        saveHostRoom();
+
+        alert("保存しました");
+
+    };
+
+}
+function validateQuestion(text, answer) {
+
+    return (
+        text.trim() !== "" &&
+        !isNaN(answer) &&
+        answer >= 0 &&
+        answer <= 100
+    );
+
 }
