@@ -3,7 +3,7 @@
  Percent Balloon v2
  host.js
  Part1
- 初期化・DOM・ルーム作成
+ 初期化・ルーム生成
 =========================================
 */
 
@@ -32,93 +32,6 @@ const HostUI = {
 };
 
 /*=========================================
-    Room
-=========================================*/
-
-let HostRoom = null;
-
-/*=========================================
-    Generate Room ID
-=========================================*/
-
-function generateRoomId() {
-
-    return Math.random()
-        .toString(36)
-        .substring(2, 8)
-        .toUpperCase();
-
-}
-
-/*=========================================
-    Create Room
-=========================================*/
-
-function createRoom() {
-
-    const rooms = JSON.parse(
-
-        localStorage.getItem("rooms") || "{}"
-
-    );
-
-    let id;
-
-    do {
-
-        id = generateRoomId();
-
-    } while (rooms[id]);
-
-    HostRoom = {
-
-        id: id,
-
-        questions: [],
-
-        currentQuestion: 0,
-
-        state: "waiting"
-
-    };
-
-    rooms[id] = HostRoom;
-
-    localStorage.setItem(
-
-        "rooms",
-
-        JSON.stringify(rooms)
-
-    );
-
-}
-
-/*=========================================
-    Save Room
-=========================================*/
-
-function saveHostRoom() {
-
-    const rooms = JSON.parse(
-
-        localStorage.getItem("rooms") || "{}"
-
-    );
-
-    rooms[HostRoom.id] = HostRoom;
-
-    localStorage.setItem(
-
-        "rooms",
-
-        JSON.stringify(rooms)
-
-    );
-
-}
-
-/*=========================================
     Initialize
 =========================================*/
 
@@ -126,35 +39,20 @@ function initHost() {
 
     createRoom();
 
-    HostUI.roomId.textContent = HostRoom.id;
+    initializeGame();
+
+    HostUI.roomId.textContent = getRoomId();
 
 }
-
 
 /*
 =========================================
  Percent Balloon v2
  host.js
  Part2
- 問題追加・一覧表示
+ 問題追加・削除・一覧表示
 =========================================
 */
-
-/*=========================================
-    Validate
-=========================================*/
-
-function validateQuestion(text, answer) {
-
-    if (text.trim() === "") return false;
-
-    if (isNaN(answer)) return false;
-
-    if (answer < 0 || answer > 100) return false;
-
-    return true;
-
-}
 
 /*=========================================
     Render Question List
@@ -164,37 +62,37 @@ function renderQuestionList() {
 
     HostUI.questionList.innerHTML = "";
 
-    HostRoom.questions.forEach((q, i) => {
+    const questions = getQuestions();
 
-        const div = document.createElement("div");
+    questions.forEach((q, index) => {
 
-        div.className = "hostQuestion";
+        const row = document.createElement("div");
 
-        div.textContent =
-            (i + 1) +
+        row.className = "hostQuestion";
+
+        row.textContent =
+            (index + 1) +
             ". " +
             q.text +
             " (" +
             q.answer +
             "%)";
 
-        const deleteButton = document.createElement("button");
+        const del = document.createElement("button");
 
-        deleteButton.textContent = "削除";
+        del.textContent = "削除";
 
-        deleteButton.onclick = function () {
+        del.onclick = function () {
 
-            HostRoom.questions.splice(i, 1);
-
-            saveHostRoom();
+            deleteQuestion(index);
 
             renderQuestionList();
 
         };
 
-        div.appendChild(deleteButton);
+        row.appendChild(del);
 
-        HostUI.questionList.appendChild(div);
+        HostUI.questionList.appendChild(row);
 
     });
 
@@ -204,7 +102,7 @@ function renderQuestionList() {
     Add Question
 =========================================*/
 
-function addQuestion() {
+function addQuestionFromUI() {
 
     const text = HostUI.questionInput.value;
 
@@ -222,42 +120,50 @@ function addQuestion() {
 
     }
 
-    HostRoom.questions.push({
+    if (!addQuestion(text, answer)) {
 
-        text: text.trim(),
+        alert("問題を追加できません。");
 
-        answer: answer
+        return;
 
-    });
-
-    saveHostRoom();
-
-    renderQuestionList();
+    }
 
     HostUI.questionInput.value = "";
 
     HostUI.answerInput.value = "";
 
+    renderQuestionList();
+
 }
-
-
 
 /*
 =========================================
  Percent Balloon v2
  host.js
  Part3
- ボタンイベント・ゲーム開始・初期化
+ ボタン・ゲーム開始・イベント
 =========================================
 */
+
+/*=========================================
+    Save
+=========================================*/
+
+function saveRoomFromUI() {
+
+    saveRoom();
+
+    alert("保存しました。");
+
+}
 
 /*=========================================
     Start Game
 =========================================*/
 
-function startGame() {
+function startGameFromUI() {
 
-    if (HostRoom.questions.length === 0) {
+    if (!hasQuestions()) {
 
         alert("問題を1問以上追加してください。");
 
@@ -265,17 +171,13 @@ function startGame() {
 
     }
 
-    HostRoom.currentQuestion = 0;
-
-    HostRoom.state = "running";
-
-    saveHostRoom();
+    startGame();
 
     localStorage.setItem(
 
         "currentRoomId",
 
-        HostRoom.id
+        getRoomId()
 
     );
 
@@ -284,14 +186,12 @@ function startGame() {
 }
 
 /*=========================================
-    Save Button
+    Home
 =========================================*/
 
-function saveRoom() {
+function backToHome() {
 
-    saveHostRoom();
-
-    alert("保存しました。");
+    location.href = "index.html";
 
 }
 
@@ -301,22 +201,53 @@ function saveRoom() {
 
 function bindEvents() {
 
-    HostUI.addButton.onclick = addQuestion;
+    HostUI.addButton.onclick = addQuestionFromUI;
 
-    HostUI.saveButton.onclick = saveRoom;
+    HostUI.saveButton.onclick = saveRoomFromUI;
 
-    HostUI.startButton.onclick = startGame;
+    HostUI.startButton.onclick = startGameFromUI;
 
-    HostUI.homeButton.onclick = function () {
+    HostUI.homeButton.onclick = backToHome;
 
-        location.href = "index.html";
+}
 
-    };
+/*
+=========================================
+ Percent Balloon v2
+ host.js
+ Part4
+ 初期化
+=========================================
+*/
+
+/*=========================================
+    Refresh UI
+=========================================*/
+
+function refreshHostUI() {
+
+    HostUI.roomId.textContent = getRoomId();
+
+    renderQuestionList();
 
 }
 
 /*=========================================
-    Initialize App
+    Initialize Host
+=========================================*/
+
+function initializeHostApp() {
+
+    initHost();
+
+    bindEvents();
+
+    refreshHostUI();
+
+}
+
+/*=========================================
+    Auto Start
 =========================================*/
 
 document.addEventListener(
@@ -325,14 +256,8 @@ document.addEventListener(
 
     function () {
 
-        initHost();
-
-        bindEvents();
-
-        renderQuestionList();
+        initializeHostApp();
 
     }
 
 );
-
-

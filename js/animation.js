@@ -396,13 +396,12 @@ function enterTension() {
 
 }
 ```
-```javascript id="ani_p5_01"
 /*
 =========================================
  Percent Balloon v2
  animation.js
  Part5
- ストップ演出（完成）
+ ストップ演出（修正版）
 =========================================
 */
 
@@ -422,17 +421,22 @@ function stopPhase() {
 
     showStopEffect();
 
-    // 少し間を置いて次処理へ
-    setTimeout(() => {
+    stopAnimation();
 
-        onAnimationComplete();
+    setTimeout(function () {
+
+        if (typeof onAnimationComplete === "function") {
+
+            onAnimationComplete();
+
+        }
 
     }, CONFIG.ANIMATION.STOP_DELAY);
 
 }
 
 /*=========================================
-    Snap Stop（即停止）
+    Snap Stop
 =========================================*/
 
 function snapStop() {
@@ -446,7 +450,7 @@ function snapStop() {
 }
 
 /*=========================================
-    Slow Stop（ため停止）
+    Slow Stop
 =========================================*/
 
 function slowStop() {
@@ -455,17 +459,29 @@ function slowStop() {
 
     let steps = 10;
 
-    const diff = Animation.target - Animation.current;
+    const diff =
+
+        Animation.target -
+
+        Animation.current;
 
     const step = diff / steps;
 
-    const timer = setInterval(() => {
+    const timer = setInterval(function () {
 
         Animation.current += step;
 
-        Animation.current = clampPercent(Animation.current);
+        Animation.current = clampPercent(
 
-        setAnimationValue(Animation.current);
+            Animation.current
+
+        );
+
+        setAnimationValue(
+
+            Animation.current
+
+        );
 
         steps--;
 
@@ -487,56 +503,28 @@ function slowStop() {
 
 function showStopEffect() {
 
-    const marker = document.getElementById("currentMarker");
+    const marker =
 
-    if (marker) {
+        document.getElementById(
 
-        marker.classList.add("pop");
+            "currentMarker"
 
-        marker.classList.add("flash");
+        );
+
+    if (!marker) {
+
+        return;
 
     }
 
-}
+    marker.classList.add("pop");
 
-/*=========================================
-    Animation Complete Callback
-=========================================*/
-
-function onAnimationComplete() {
-
-    // UI更新（差・スコアなど）
-
-    const diff = Math.abs(
-
-        Game.userAnswer - Animation.target
-
-    );
-
-    Game.difference = diff;
-
-    calculateDifference();
-
-    addScore();
-
-    showDifferenceUI(diff);
-
-    showScoreUI(Game.score);
-
-    // 次ラウンドへ
-
-    setTimeout(() => {
-
-        nextRound();
-
-        startAnimation(0);
-
-    }, CONFIG.GAME.AUTO_NEXT_TIME);
+    marker.classList.add("flash");
 
 }
 
 /*=========================================
-    Dispatcher Update（完成）
+    Dispatcher
 =========================================*/
 
 function updateAnimation() {
@@ -544,22 +532,27 @@ function updateAnimation() {
     switch (Animation.state) {
 
         case "chaos":
+
             updateChaos();
+
             break;
 
         case "drift":
+
             updateDrift();
+
             break;
 
         case "tension":
+
             updateTension();
+
             break;
 
         case "stop":
-        default:
+
             break;
 
     }
 
 }
-```

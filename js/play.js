@@ -1,4 +1,3 @@
-```javascript id="play_p1_01"
 /*
 =========================================
  Percent Balloon v2
@@ -9,36 +8,14 @@
 */
 
 /*=========================================
-    Play State
+    Initialize
 =========================================*/
 
-let Play = {
-
-    room: null,
-
-    question: null,
-
-    initialized: false
-
-};
-
-/*=========================================
-    Load Room
-=========================================*/
-
-function loadPlayRoom() {
-
-    const rooms = JSON.parse(
-
-        localStorage.getItem("rooms") || "{}"
-
-    );
+function initPlay() {
 
     const roomId = prompt("ルームIDを入力してください");
 
-    if (!rooms[roomId]) {
-
-        alert("ルームが見つかりません");
+    if (!roomId) {
 
         location.href = "index.html";
 
@@ -46,427 +23,246 @@ function loadPlayRoom() {
 
     }
 
-    Play.room = rooms[roomId];
+    if (!loadRoom(roomId)) {
 
-    localStorage.setItem("currentRoomId", roomId);
+        alert("ルームが見つかりません。");
+
+        location.href = "index.html";
+
+        return;
+
+    }
+
+    initializeGame();
+
+    loadGame();
 
 }
 
 /*=========================================
-    Initialize Play
+    Current Question
 =========================================*/
 
-function initPlay() {
+function getPlayQuestion() {
 
-    loadPlayRoom();
-
-    if (!Play.room) return;
-
-    Play.question = null;
-
-    Play.initialized = true;
-
-    initializeUI();
-
-    setWaitingUI();
+    return getCurrentQuestion();
 
 }
-```
-```javascript id="play_p2_01"
+
 /*
 =========================================
  Percent Balloon v2
  play.js
  Part2
- ゲーム開始・問題表示・入力制御
+ 問題表示・回答受付
 =========================================
 */
-
-/*=========================================
-    Get Current Question
-=========================================*/
-
-function getCurrentQuestion() {
-
-    if (!Play.room) return null;
-
-    const index = Play.room.currentQuestion || 0;
-
-    return Play.room.questions[index] || null;
-
-}
 
 /*=========================================
     Show Question
 =========================================*/
 
-function showPlayQuestion() {
+function showCurrentQuestion() {
 
-    const q = getCurrentQuestion();
+    const question = getPlayQuestion();
 
-    if (!q) return;
+    if (!question) {
 
-    Play.question = q;
+        return;
 
-    showQuestionUI(q);
+    }
+
+    showQuestionUI(question);
 
     setSubmitButtonState(true);
 
 }
 
 /*=========================================
-    Start Game Flow
+    Submit Answer
 =========================================*/
 
-function startPlayGame() {
+function submitAnswer() {
 
-    if (!Play.room) return;
+    const input = document.getElementById("answerInput");
 
-    Play.room.state = "running";
+    const value = Number(input.value);
 
-    savePlayRoom();
+    if (!setUserAnswer(value)) {
 
-    showPlayQuestion();
+        alert("0〜100の数字を入力してください。");
 
-    resetUI();
+        return;
+
+    }
+
+    loadCorrectAnswer();
+
+    setCorrectAnswer(getCorrectAnswer());
+
+    startAnimation(getCorrectAnswer());
 
 }
 
 /*=========================================
-    Reset Play UI
+    Reset Input
 =========================================*/
 
-function resetPlayState() {
+function resetAnswerInput() {
 
-    resetUI();
+    const input = document.getElementById("answerInput");
 
-    setAnimationValue(0);
+    if (input) {
 
-    showCurrentMarkerUI(0);
+        input.value = "";
 
-    showAnswerMarkerUI(0);
+    }
 
 }
 
-/*=========================================
-    Submit Answer Handler
-=========================================*/
-
-function onPlaySubmit(value) {
-
-    if (!Play.question) return;
-
-    Play.userAnswer = value;
-
-    showAnswerMarkerUI(value);
-
-    startAnimation(Play.question.answer);
-
-}
-```
-```javascript id="play_p3_01"
 /*
 =========================================
  Percent Balloon v2
  play.js
  Part3
- 回答処理・判定・スコア計算
+ アニメーション終了・結果表示・次の問題
 =========================================
 */
 
 /*=========================================
-    Calculate Difference
+    Animation Complete
 =========================================*/
 
-function calculateDifferencePlay() {
+function onAnimationComplete() {
 
-    if (!Play.question) return 0;
+    calculateDifference();
 
-    const diff = Math.abs(
+    addScore();
 
-        Play.userAnswer - Play.question.answer
+    showDifferenceUI(
+
+        getDifference()
 
     );
 
-    return diff;
+    showScoreUI(
 
-}
+        getScore()
 
-/*=========================================
-    Add Score
-=========================================*/
-
-function addScorePlay() {
-
-    const diff = calculateDifferencePlay();
-
-    let point = 0;
-
-    if (diff <= 1) point = 100;
-
-    else if (diff <= 5) point = 80;
-
-    else if (diff <= 10) point = 50;
-
-    else if (diff <= 20) point = 30;
-
-    else point = Math.max(0, 100 - diff);
-
-    Play.score = (Play.score || 0) + point;
-
-    return point;
-
-}
-
-/*=========================================
-    Show Result
-=========================================*/
-
-function showResultPlay() {
-
-    const diff = calculateDifferencePlay();
-
-    const point = addScorePlay();
-
-    showDifferenceUI(diff);
-
-    showScoreUI(Play.score);
-
-    flashUI(document.getElementById("differenceText"));
-
-}
-
-/*=========================================
-    Validate Answer
-=========================================*/
-
-function validateAnswer(value) {
-
-    return !isNaN(value) && value >= 0 && value <= 100;
-
-}
-
-/*=========================================
-    Submit Flow Wrapper
-=========================================*/
-
-function handleSubmitAnswer(value) {
-
-    if (!validateAnswer(value)) {
-
-        alert("0〜100の数字を入力してください");
-
-        return;
-
-    }
-
-    Play.userAnswer = value;
-
-    showAnswerMarkerUI(value);
-
-    startAnimation(Play.question.answer);
-
-}
-```
-```javascript id="play_p4_01"
-/*
-=========================================
- Percent Balloon v2
- play.js
- Part4
- アニメーション連携・停止処理
-=========================================
-*/
-
-/*=========================================
-    Start Animation Wrapper
-=========================================*/
-
-function startPlayAnimation() {
-
-    if (!Play.question) return;
-
-    const target = Play.question.answer;
-
-    startAnimation(target);
-
-}
-
-/*=========================================
-    Animation Complete Callback
-=========================================*/
-
-function onAnimationCompletePlay() {
-
-    showResultPlay();
+    );
 
     setTimeout(() => {
 
-        nextQuestionPlay();
+        nextPlayQuestion();
 
-    }, 1200);
-
-}
-
-/*=========================================
-    Stop Animation Manually
-=========================================*/
-
-function forceStopAnimation() {
-
-    stopAnimation();
-
-    showCurrentMarkerUI(Play.question.answer);
-
-    showAnswerMarkerUI(Play.question.answer);
-
-    showResultPlay();
+    }, CONFIG.GAME.AUTO_NEXT_TIME);
 
 }
-
-/*=========================================
-    Animation Event Hook
-=========================================*/
-
-function hookAnimationEvents() {
-
-    window.onAnimationComplete = onAnimationCompletePlay;
-
-}
-```
-```javascript id="play_p5_01"
-/*
-=========================================
- Percent Balloon v2
- play.js
- Part5
- ループ・終了・最終統合
-=========================================
-*/
 
 /*=========================================
     Next Question
 =========================================*/
 
-function nextQuestionPlay() {
+function nextPlayQuestion() {
 
-    if (!Play.room) return;
+    if (!nextRound()) {
 
-    const next = (Play.room.currentQuestion || 0) + 1;
-
-    if (next >= Play.room.questions.length) {
-
-        endPlayGame();
+        finishPlayGame();
 
         return;
 
     }
 
-    Play.room.currentQuestion = next;
+    resetAnswerInput();
 
-    savePlayRoom();
-
-    resetPlayState();
-
-    showPlayQuestion();
+    showCurrentQuestion();
 
 }
 
 /*=========================================
-    End Game
+    Finish Game
 =========================================*/
 
-function endPlayGame() {
+function finishPlayGame() {
 
-    Play.room.state = "finished";
+    endGame();
 
-    savePlayRoom();
+    showGameOverUI(
 
-    showGameOverUI({
-
-        score: Play.score || 0,
-
-        average: calculateAverageDiff(),
-
-        rank: getRank(Play.score || 0)
-
-    });
-
-}
-
-/*=========================================
-    Calculate Average Difference
-=========================================*/
-
-function calculateAverageDiff() {
-
-    if (!Play.room || !Play.room.questions.length) return 0;
-
-    return Math.round(
-
-        (Play.totalDiff || 0) /
-
-        Play.room.questions.length
+        getGameResult()
 
     );
 
 }
 
+/*
+=========================================
+ Percent Balloon v2
+ play.js
+ Part4
+ イベント・初期化
+=========================================
+*/
+
 /*=========================================
-    Get Rank
+    Bind Events
 =========================================*/
 
-function getRank(score) {
+function bindPlayEvents() {
 
-    if (score >= 300) return "S";
+    const submitButton = document.getElementById(
 
-    if (score >= 200) return "A";
+        "submitButton"
 
-    if (score >= 120) return "B";
+    );
 
-    if (score >= 60) return "C";
+    const homeButton = document.getElementById(
 
-    return "D";
+        "homeButton"
+
+    );
+
+    if (submitButton) {
+
+        submitButton.onclick = submitAnswer;
+
+    }
+
+    if (homeButton) {
+
+        homeButton.onclick = function () {
+
+            location.href = "index.html";
+
+        };
+
+    }
 
 }
 
 /*=========================================
-    Save Room (Play Side)
+    Refresh UI
 =========================================*/
 
-function savePlayRoom() {
+function refreshPlayUI() {
 
-    const rooms = JSON.parse(
+    showCurrentQuestion();
 
-        localStorage.getItem("rooms") || "{}"
-
-    );
-
-    if (!Play.room) return;
-
-    rooms[Play.room.id] = Play.room;
-
-    localStorage.setItem(
-
-        "rooms",
-
-        JSON.stringify(rooms)
-
-    );
+    resetAnswerInput();
 
 }
 
 /*=========================================
-    Initialize Play App
+    Initialize App
 =========================================*/
 
-function initPlayApp() {
+function initializePlayApp() {
 
     initPlay();
 
-    hookAnimationEvents();
+    bindPlayEvents();
 
-    showWaitingUI?.();
+    refreshPlayUI();
 
 }
 
@@ -474,9 +270,14 @@ function initPlayApp() {
     Auto Start
 =========================================*/
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener(
 
-    initPlayApp();
+    "DOMContentLoaded",
 
-});
-```
+    function () {
+
+        initializePlayApp();
+
+    }
+
+);
